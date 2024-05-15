@@ -4,6 +4,7 @@ from typing import List, NamedTuple
 
 import ollama
 import yaml
+from openai import OpenAI
 
 
 class Task(NamedTuple):
@@ -172,7 +173,13 @@ Output:
 
 
 def extract_and_compare_query_results(response: str, task: Task) -> bool:
-    id, input = response.split(", ")[0], response.split(", ")[1]
+    try:
+        id, input = int(response.split(", ")[0]), response.split(", ")[1].strip(
+            "'"
+        ).strip('"')
+    except ValueError:
+        return False
+
     # print(f"extracting {id} {input} from response: {response}")
     if id == task.action_index and input == task.action_param:
         return True
@@ -185,9 +192,21 @@ def test_with_local_model():
 
     for index, task in enumerate(tasks[:10]):
         prompt = construct_query_prompt_one_shot(task)
-        response = ollama.chat(
-            model="llama2:latest", messages=[{"role": "user", "content": prompt}]
-        )["message"]["content"]
+        client = OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY"),
+            base_url=os.environ.get("OPENAI_BASE_URL"),
+        )
+
+        completion = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            seed=0,
+            temperature=0,
+            messages=[
+                {"role": "user", "content": prompt},
+            ],
+            timeout=30,
+        )
+        response = completion.choices[0].message.content
 
         print(
             f"task-{index}, success: {extract_and_compare_query_results(response, task)}"
