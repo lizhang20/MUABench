@@ -2,7 +2,6 @@ import os
 import re
 from typing import List, NamedTuple
 
-import ollama
 import yaml
 from openai import OpenAI
 
@@ -94,8 +93,9 @@ def load_all_tasks(task_path: str):
 
 def construct_query_prompt_zero_shot(task: Task):
     prompt = f"""\
-Screen description: {task.ui_representation}
-If I want to complete that {task.task_description}, I need to operate
+The simplified UI can be represented as: ```{task.ui_representation}```.
+I want to execute the task: ```{task.task_description}```.
+I need to tap the button with ID: 
 """
     return prompt
 
